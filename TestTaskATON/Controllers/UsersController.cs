@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using TestTaskATON.Models.ResponseModels;
 using TestTaskATON.Repositories.Interfaces;
 using TestTaskATON.ViewModels;
 
@@ -26,14 +25,14 @@ namespace TestTaskATON.Controllers
         {
             if (ModelState.IsValid)
             {
-                var adminResult = await _users.IsAdmin(model.AdminModel.Login, model.AdminModel.Password);
+                var adminResult = await _users.IsAdmin(model.User.Login, model.User.Password);
 
                 if (adminResult.Status && adminResult.User != null)
                 {
                     var creationResult = await _users.CreateUser(
                     model.Login, model.Password,
                     model.Name, model.Gender,
-                    model.Birthday, model.Admin, model.AdminModel.Password);
+                    model.Birthday, model.Admin, model.User.Login);
 
                     if (creationResult.Status)
                     {
@@ -52,10 +51,10 @@ namespace TestTaskATON.Controllers
         /// <summary>
         /// Запрос списка всех активных (отсутствует RevokedOn) пользователей
         /// </summary>
-        /// <param name="model">ViewModel админа</param>
+        /// <param name="model">Логин и пароль выполняющего запрос</param>
         [HttpGet]
         [Route("/users/getAllActive")]
-        public async Task<IResult> GetActiveUsers([FromQuery] AdminViewModel model)
+        public async Task<IResult> GetActiveUsers([FromQuery] SignInViewModel model)
         {
             var adminResult = await _users.IsAdmin(model.Login, model.Password);
 
@@ -77,11 +76,11 @@ namespace TestTaskATON.Controllers
         /// <summary>
         /// Запрос пользователя по логину
         /// </summary>
-        /// <param name="model">ViewModel админа</param>
+        /// <param name="model">Логин и пароль выполняющего запрос</param>
         /// <param name="userLogin">Логин пользователя которого ищут</param>
         [HttpGet]
-        [Route("/users/getByLogin/{userLogin}")]
-        public async Task<IResult> GetUserByLogin([FromQuery] AdminViewModel model, string userLogin)
+        [Route("/users/getByLogin")]
+        public async Task<IResult> GetUserByLogin([FromQuery] SignInViewModel model, string userLogin)
         {
             var adminResult = await _users.IsAdmin(model.Login, model.Password);
 
@@ -118,13 +117,12 @@ namespace TestTaskATON.Controllers
         /// <summary>
         /// Запрос пользователя по логину и паролю
         /// </summary>
-        /// <param name="login">Логин пользователя</param>
-        /// <param name="password">Пароль пользователя</param>
+        /// <param name="model">Логин и пароль выполняющего запрос</param>
         [HttpGet]
-        [Route("/users/getByLoginAndPass/{login}/{password}")]
-        public async Task<IResult> GetUserByLoginAndPassword(string login, string password)
+        [Route("/users/getByLoginAndPass")]
+        public async Task<IResult> GetUserByLoginAndPassword([FromQuery] SignInViewModel model)
         {
-            var userResult = await _users.GetUserByLoginAndPassword(login, password);
+            var userResult = await _users.GetUserByLoginAndPassword(model.Login, model.Password);
 
             if (userResult.Status && userResult.User != null)
             {
@@ -142,11 +140,11 @@ namespace TestTaskATON.Controllers
         /// <summary>
         /// Запрос всех пользователей старше определённого возраста
         /// </summary>
-        /// <param name="model">ViewModel админа</param>
+        /// <param name="model">Логин и пароль выполняющего запрос</param>
         /// <param name="age">Возраст</param>
         [HttpGet]
-        [Route("/users/elderThan/{age}")]
-        public async Task<IResult> GetUsersOlderThan([FromQuery] AdminViewModel model, int age)
+        [Route("/users/elderThan")]
+        public async Task<IResult> GetUsersOlderThan([FromQuery] SignInViewModel model, int age)
         {
             var adminResult = await _users.IsAdmin(model.Login, model.Password);
 
@@ -163,17 +161,17 @@ namespace TestTaskATON.Controllers
         /// <summary>
         /// Удаление пользователя по логину полное
         /// </summary>
-        /// <param name="model">ViewModel админа</param>
-        /// <param name="login">Логин пользователя которого удаляют</param>
+        /// <param name="model">Логин и пароль выполняющего запрос</param>
+        /// <param name="userLogin">Логин пользователя которого удаляют</param>
         [HttpDelete]
-        [Route("/users/fullDelete/{login}")]
-        public async Task<IResult> Delete([FromQuery] AdminViewModel model, string login)
+        [Route("/users/fullDelete")]
+        public async Task<IResult> Delete([FromQuery] SignInViewModel model, string userLogin)
         {
             var adminResult = await _users.IsAdmin(model.Login, model.Password);
 
             if (adminResult.Status && adminResult.User != null)
             {
-                var usersResult = await _users.DeleteUserByLogin(login);
+                var usersResult = await _users.DeleteUserByLogin(userLogin);
 
                 return Results.Ok(usersResult);
             }
@@ -184,17 +182,17 @@ namespace TestTaskATON.Controllers
         /// <summary>
         /// Удаление пользователя по логину мягкое
         /// </summary>
-        /// <param name="model">ViewModel админа</param>
-        /// <param name="login">Логин пользователя которого удаляют</param>
+        /// <param name="model">Логин и пароль выполняющего запрос</param>
+        /// <param name="userLogin">Логин пользователя которого удаляют</param>
         [HttpDelete]
-        [Route("/users/softDelete/{login}")]
-        public async Task<IResult> SoftDelete([FromQuery] AdminViewModel model, string login)
+        [Route("/users/softDelete")]
+        public async Task<IResult> SoftDelete([FromQuery] SignInViewModel model, string userLogin)
         {
             var adminResult = await _users.IsAdmin(model.Login, model.Password);
 
             if (adminResult.Status && adminResult.User != null)
             {
-                var usersResult = await _users.StopUserActivity(login, model.Login);
+                var usersResult = await _users.StopUserActivity(userLogin, model.Login);
 
                 return Results.Ok(usersResult);
             }
@@ -205,17 +203,17 @@ namespace TestTaskATON.Controllers
         /// <summary>
         /// Восстановление пользователя
         /// </summary>
-        /// <param name="model">ViewModel админа</param>
-        /// <param name="login">Логин пользователя которого восстанавливают</param>
+        /// <param name="model">Логин и пароль выполняющего запрос</param>
+        /// <param name="userLogin">Логин пользователя которого восстанавливают</param>
         [HttpPut]
-        [Route("/users/restoreUser/{login}")]
-        public async Task<IResult> RestoreUser([FromQuery] AdminViewModel model, string login)
+        [Route("/users/restoreUser")]
+        public async Task<IResult> RestoreUser([FromQuery] SignInViewModel model, string userLogin)
         {
             var adminResult = await _users.IsAdmin(model.Login, model.Password);
 
             if (adminResult.Status && adminResult.User != null)
             {
-                var usersResult = await _users.RestoreUser(login, model.Login);
+                var usersResult = await _users.RestoreUser(userLogin, model.Login);
 
                 return Results.Ok(usersResult);
             }
@@ -226,32 +224,30 @@ namespace TestTaskATON.Controllers
         /// <summary>
         /// Изменение имени, пола или даты рождения пользователя
         /// </summary>
-        /// <param name="model">ViewModel админа</param>
+        /// <param name="model">ViewModel для обновления данных пользователя</param>
         [HttpPut]
         [Route("/users/updateUser")]
         public async Task<IResult> UpdateUser([FromQuery] UpdateUserViewModel model)
         {
-            if (ModelState.IsValid)
+            var userResult = await _users.GetUserByLoginAndPassword(model.User.Login, model.User.Password);
+
+            if (userResult.Status && userResult.User != null)
             {
-                var adminResult = await _users.IsAdmin(model.Admin.Login, model.Admin.Password);
-                var userResult = new Response("", false);
-
-                if (model.Password != null)
+                if (userResult.User.Admin)
                 {
-                    userResult = await _users.GetUserByLoginAndPassword(model.Login, model.Password);
+                    var usersResult = await _users.UpdateUser(model.Login, model.Name, model.Gender, model.Birthday, model.User.Login);
+
+                    return Results.Ok(usersResult);
                 }
-
-                if (adminResult.Status || userResult.Status)
+                else
                 {
-                    string whoUpdateUserLogin;
-
-                    if (adminResult.Status)
-                        whoUpdateUserLogin = model.Admin.Login;
-                    else
+                    if (model.Login == model.User.Login)
                     {
-                        if(userResult.User.RevokedBy == null && userResult.User.RevokedOn == null)
+                        if (userResult.User.RevokedBy == null && userResult.User.RevokedOn == null)
                         {
-                            whoUpdateUserLogin = model.Login;
+                            var usersResult = await _users.UpdateUser(model.Login, model.Name, model.Gender, model.Birthday, model.User.Login);
+
+                            return Results.Ok(usersResult);
                         }
                         else
                         {
@@ -259,105 +255,97 @@ namespace TestTaskATON.Controllers
                         }
                     }
 
-                    var usersResult = await _users.UpdateUser(model.Login, model.Name, model.Gender, model.Birthday, whoUpdateUserLogin);
-
-                    return Results.Ok(usersResult);
+                    return Results.Problem("Пользователь имеет право менять только свои данные");
                 }
-
-                return Results.BadRequest(adminResult.Message);
             }
 
-            return Results.BadRequest();
+            return Results.BadRequest(userResult.Message);
         }
 
         /// <summary>
         /// Изменение пароля
         /// </summary>
-        /// <param name="model">ViewModel админа</param>
-        /// <param name="login">Логин пользователя</param>
-        /// <param name="password">Пароль пользователя</param>
+        /// <param name="model">Логин и пароль выполняющего запрос</param>
+        /// <param name="userLogin">Логин пользователя у которого меняют пароль</param>
         /// <param name="newPassword">Новый пароль пользователя</param>
         [HttpPut]
         [Route("/users/updateUserPass")]
-        public async Task<IResult> UpdateUserPass(AdminViewModel model,string login, string? password, string newPassword)
+        public async Task<IResult> UpdateUserPass([FromQuery] SignInViewModel model, string userLogin, string newPassword)
         {
-            var adminResult = await _users.IsAdmin(model.Login, model.Password);
-            var userResult = new Response("", false);
+            var userResult = await _users.GetUserByLoginAndPassword(model.Login, model.Password);
 
-            if (password != null)
+            if (userResult.Status && userResult.User != null)
             {
-                userResult = await _users.GetUserByLoginAndPassword(login, password);
-            }
+                if (userResult.User.Admin)
+                {
+                    var usersResult = await _users.UpdatePassword(userLogin, newPassword, model.Login);
 
-            if (adminResult.Status || userResult.Status)
-            {
-                string whoUpdateUserLogin;
-
-                if (adminResult.Status)
-                    whoUpdateUserLogin = model.Login;
+                    return Results.Ok(usersResult);
+                }
                 else
                 {
-                    if (userResult.User.RevokedBy == null && userResult.User.RevokedOn == null)
+                    if (model.Login == userLogin)
                     {
-                        whoUpdateUserLogin = model.Login;
+                        if (userResult.User.RevokedBy == null && userResult.User.RevokedOn == null)
+                        {
+                            var usersResult = await _users.UpdatePassword(userLogin, newPassword, model.Login);
+
+                            return Results.Ok(usersResult);
+                        }
+                        else
+                        {
+                            return Results.Problem("Пользователь заблокирован");
+                        }
                     }
-                    else
-                    {
-                        return Results.Problem("Пользователь заблокирован");
-                    }
+
+                    return Results.Problem("Пользователь имеет право менять только свои данные");
                 }
-
-                var usersResult = await _users.UpdatePassword(login, newPassword, whoUpdateUserLogin);
-
-                return Results.Ok(usersResult);
             }
 
-            return Results.BadRequest(adminResult.Message);
+            return Results.BadRequest(userResult.Message);
         }
 
         /// <summary>
         /// Изменение пароля
         /// </summary>
-        /// <param name="model">ViewModel админа</param>
-        /// <param name="login">Логин пользователя</param>
-        /// <param name="password">Пароль пользователя</param>
-        /// <param name="newPassword">Новый пароль пользователя</param>
+        /// <param name="model">Логин и пароль выполняющего запрос</param>
+        /// <param name="userLogin">Логин пользователя у которого меняют логин</param>
+        /// <param name="newLogin">Новый логин пользователя</param>
         [HttpPut]
         [Route("/users/updateUserLogin")]
-        public async Task<IResult> UpdateUserLogin(AdminViewModel model, string login, string? password, string newLogin)
+        public async Task<IResult> UpdateUserLogin([FromQuery] SignInViewModel model, string userLogin, string newLogin)
         {
-            var adminResult = await _users.IsAdmin(model.Login, model.Password);
-            var userResult = new Response("", false);
+            var userResult = await _users.GetUserByLoginAndPassword(model.Login, model.Password);
 
-            if (password != null)
+            if (userResult.Status && userResult.User != null)
             {
-                userResult = await _users.GetUserByLoginAndPassword(login, password);
-            }
+                if (userResult.User.Admin)
+                {
+                    var usersResult = await _users.UpdateLogin(userLogin, newLogin, model.Login);
 
-            if (adminResult.Status || userResult.Status)
-            {
-                string whoUpdateUserLogin;
-
-                if (adminResult.Status)
-                    whoUpdateUserLogin = model.Login;
+                    return Results.Ok(usersResult);
+                }
                 else
                 {
-                    if (userResult.User.RevokedBy == null && userResult.User.RevokedOn == null)
+                    if (model.Login == userLogin)
                     {
-                        whoUpdateUserLogin = login;
+                        if (userResult.User.RevokedBy == null && userResult.User.RevokedOn == null)
+                        {
+                            var usersResult = await _users.UpdateLogin(userLogin, newLogin, model.Login);
+
+                            return Results.Ok(usersResult);
+                        }
+                        else
+                        {
+                            return Results.Problem("Пользователь заблокирован");
+                        }
                     }
-                    else
-                    {
-                        return Results.Problem("Пользователь заблокирован");
-                    }
+
+                    return Results.Problem("Пользователь имеет право менять только свои данные");
                 }
-
-                var usersResult = await _users.UpdateLogin(login, newLogin, whoUpdateUserLogin);
-
-                return Results.Ok(usersResult);
             }
 
-            return Results.BadRequest(adminResult.Message);
+            return Results.BadRequest(userResult.Message);
         }
     }
 }
