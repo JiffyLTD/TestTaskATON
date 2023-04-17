@@ -22,7 +22,7 @@ namespace TestTaskATON.Controllers
         /// <param name="model">ViewModel для регистрации</param>
         [HttpPost]
         [Route("/users/addNewUser")]
-        public async Task<IResult> AddNewUser(UserRegisterViewModel model)
+        public async Task<IResult> AddNewUser([FromQuery] UserRegisterViewModel model)
         {
             if (ModelState.IsValid)
             {
@@ -95,7 +95,7 @@ namespace TestTaskATON.Controllers
 
                     if (userResult.User.RevokedOn != null && userResult.User.RevokedBy != null)
                     {
-                        isActive = false;
+                        isActive = false; // если RevokedOn и RevokedBy null, то пользователь активный
                     }
 
                     var userData = new
@@ -209,7 +209,7 @@ namespace TestTaskATON.Controllers
         /// <param name="login">Логин пользователя которого восстанавливают</param>
         [HttpPut]
         [Route("/users/restoreUser/{login}")]
-        public async Task<IResult> RestoreUser(AdminViewModel model, string login)
+        public async Task<IResult> RestoreUser([FromQuery] AdminViewModel model, string login)
         {
             var adminResult = await _users.IsAdmin(model.Login, model.Password);
 
@@ -229,7 +229,7 @@ namespace TestTaskATON.Controllers
         /// <param name="model">ViewModel админа</param>
         [HttpPut]
         [Route("/users/updateUser")]
-        public async Task<IResult> UpdateUser(UpdateUserViewModel model)
+        public async Task<IResult> UpdateUser([FromQuery] UpdateUserViewModel model)
         {
             if (ModelState.IsValid)
             {
@@ -248,7 +248,16 @@ namespace TestTaskATON.Controllers
                     if (adminResult.Status)
                         whoUpdateUserLogin = model.Admin.Login;
                     else
-                        whoUpdateUserLogin = model.Login;
+                    {
+                        if(userResult.User.RevokedBy == null && userResult.User.RevokedOn == null)
+                        {
+                            whoUpdateUserLogin = model.Login;
+                        }
+                        else
+                        {
+                            return Results.Problem("Пользователь заблокирован");
+                        }
+                    }
 
                     var usersResult = await _users.UpdateUser(model.Login, model.Name, model.Gender, model.Birthday, whoUpdateUserLogin);
 
@@ -284,10 +293,19 @@ namespace TestTaskATON.Controllers
             {
                 string whoUpdateUserLogin;
 
-                if(adminResult.Status)
+                if (adminResult.Status)
                     whoUpdateUserLogin = model.Login;
                 else
-                    whoUpdateUserLogin = login;
+                {
+                    if (userResult.User.RevokedBy == null && userResult.User.RevokedOn == null)
+                    {
+                        whoUpdateUserLogin = model.Login;
+                    }
+                    else
+                    {
+                        return Results.Problem("Пользователь заблокирован");
+                    }
+                }
 
                 var usersResult = await _users.UpdatePassword(login, newPassword, whoUpdateUserLogin);
 
@@ -323,7 +341,16 @@ namespace TestTaskATON.Controllers
                 if (adminResult.Status)
                     whoUpdateUserLogin = model.Login;
                 else
-                    whoUpdateUserLogin = login;
+                {
+                    if (userResult.User.RevokedBy == null && userResult.User.RevokedOn == null)
+                    {
+                        whoUpdateUserLogin = login;
+                    }
+                    else
+                    {
+                        return Results.Problem("Пользователь заблокирован");
+                    }
+                }
 
                 var usersResult = await _users.UpdateLogin(login, newLogin, whoUpdateUserLogin);
 

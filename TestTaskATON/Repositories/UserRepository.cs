@@ -71,7 +71,7 @@ namespace TestTaskATON.Repositories
         {
             try
             {
-                var users = await _db.Users.Where(x => x.RevokedOn == null).ToListAsync();
+                var users = await _db.Users.Where(x => x.RevokedOn == null).OrderByDescending(x => x.CreatedOn).ToListAsync();// сортировка по дате создания от новых к старым
 
                 return new Response("Список активных пользователей", true, users);
             }

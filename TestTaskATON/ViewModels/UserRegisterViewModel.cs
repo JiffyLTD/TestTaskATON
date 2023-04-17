@@ -14,6 +14,6 @@ namespace TestTaskATON.ViewModels
         public int Gender { get; set; }
         public DateTime? Birthday { get; set; }
         public bool Admin { get; set; }
-        public AdminViewModel? AdminModel { get; set; }
+        public AdminViewModel AdminModel { get; set; } = null!;
     }
 }
