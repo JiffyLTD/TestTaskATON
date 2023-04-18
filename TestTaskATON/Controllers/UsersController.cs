@@ -23,29 +23,24 @@ namespace TestTaskATON.Controllers
         [Route("/users/addNewUser")]
         public async Task<IResult> AddNewUser([FromQuery] UserRegisterViewModel model)
         {
-            if (ModelState.IsValid)
+            var adminResult = await _users.IsAdmin(model.User.Login, model.User.Password);
+
+            if (adminResult.Status)
             {
-                var adminResult = await _users.IsAdmin(model.User.Login, model.User.Password);
+                var creationResult = await _users.CreateUser(
+                model.Login, model.Password,
+                model.Name, model.Gender,
+                model.Birthday, model.Admin, model.User.Login);
 
-                if (adminResult.Status && adminResult.User != null)
+                if (creationResult.Status)
                 {
-                    var creationResult = await _users.CreateUser(
-                    model.Login, model.Password,
-                    model.Name, model.Gender,
-                    model.Birthday, model.Admin, model.User.Login);
-
-                    if (creationResult.Status)
-                    {
-                        return Results.Ok(creationResult);
-                    }
-
-                    return Results.BadRequest(creationResult.Message);
+                    return Results.Ok(creationResult);
                 }
 
-                return Results.BadRequest(adminResult.Message);
+                return Results.BadRequest(creationResult.Message);
             }
 
-            return Results.BadRequest();
+            return Results.BadRequest(adminResult.Message);
         }
 
         /// <summary>
@@ -58,7 +53,7 @@ namespace TestTaskATON.Controllers
         {
             var adminResult = await _users.IsAdmin(model.Login, model.Password);
 
-            if (adminResult.Status && adminResult.User != null)
+            if (adminResult.Status)
             {
                 var result = await _users.GetActiveUsers();
 
@@ -84,15 +79,15 @@ namespace TestTaskATON.Controllers
         {
             var adminResult = await _users.IsAdmin(model.Login, model.Password);
 
-            if (adminResult.Status && adminResult.User != null)
+            if (adminResult.Status)
             {
                 var userResult = await _users.GetUserByLogin(userLogin);
 
-                if (userResult.Status && userResult.User != null)
+                if (userResult.Status)
                 {
                     bool isActive = true;
 
-                    if (userResult.User.RevokedOn != null && userResult.User.RevokedBy != null)
+                    if (userResult.User.RevokedOn != null)
                     {
                         isActive = false; // если RevokedOn и RevokedBy null, то пользователь активный
                     }
@@ -124,9 +119,9 @@ namespace TestTaskATON.Controllers
         {
             var userResult = await _users.GetUserByLoginAndPassword(model.Login, model.Password);
 
-            if (userResult.Status && userResult.User != null)
+            if (userResult.Status)
             {
-                if (userResult.User.RevokedBy == null && userResult.User.RevokedOn == null)
+                if (userResult.User.RevokedOn == null)
                 {
                     return Results.Ok(userResult);
                 }
@@ -148,7 +143,7 @@ namespace TestTaskATON.Controllers
         {
             var adminResult = await _users.IsAdmin(model.Login, model.Password);
 
-            if (adminResult.Status && adminResult.User != null)
+            if (adminResult.Status)
             {
                 var usersResult = await _users.GetUsersOlderThan(age);
 
@@ -169,7 +164,7 @@ namespace TestTaskATON.Controllers
         {
             var adminResult = await _users.IsAdmin(model.Login, model.Password);
 
-            if (adminResult.Status && adminResult.User != null)
+            if (adminResult.Status)
             {
                 var usersResult = await _users.DeleteUserByLogin(userLogin);
 
@@ -190,7 +185,7 @@ namespace TestTaskATON.Controllers
         {
             var adminResult = await _users.IsAdmin(model.Login, model.Password);
 
-            if (adminResult.Status && adminResult.User != null)
+            if (adminResult.Status)
             {
                 var usersResult = await _users.StopUserActivity(userLogin, model.Login);
 
@@ -211,7 +206,7 @@ namespace TestTaskATON.Controllers
         {
             var adminResult = await _users.IsAdmin(model.Login, model.Password);
 
-            if (adminResult.Status && adminResult.User != null)
+            if (adminResult.Status)
             {
                 var usersResult = await _users.RestoreUser(userLogin, model.Login);
 
@@ -231,7 +226,7 @@ namespace TestTaskATON.Controllers
         {
             var userResult = await _users.GetUserByLoginAndPassword(model.User.Login, model.User.Password);
 
-            if (userResult.Status && userResult.User != null)
+            if (userResult.Status)
             {
                 if (userResult.User.Admin)
                 {
@@ -243,7 +238,7 @@ namespace TestTaskATON.Controllers
                 {
                     if (model.Login == model.User.Login)
                     {
-                        if (userResult.User.RevokedBy == null && userResult.User.RevokedOn == null)
+                        if (userResult.User.RevokedOn == null)
                         {
                             var usersResult = await _users.UpdateUser(model.Login, model.Name, model.Gender, model.Birthday, model.User.Login);
 
@@ -274,7 +269,7 @@ namespace TestTaskATON.Controllers
         {
             var userResult = await _users.GetUserByLoginAndPassword(model.Login, model.Password);
 
-            if (userResult.Status && userResult.User != null)
+            if (userResult.Status)
             {
                 if (userResult.User.Admin)
                 {
@@ -286,7 +281,7 @@ namespace TestTaskATON.Controllers
                 {
                     if (model.Login == userLogin)
                     {
-                        if (userResult.User.RevokedBy == null && userResult.User.RevokedOn == null)
+                        if (userResult.User.RevokedOn == null)
                         {
                             var usersResult = await _users.UpdatePassword(userLogin, newPassword, model.Login);
 
@@ -317,7 +312,7 @@ namespace TestTaskATON.Controllers
         {
             var userResult = await _users.GetUserByLoginAndPassword(model.Login, model.Password);
 
-            if (userResult.Status && userResult.User != null)
+            if (userResult.Status)
             {
                 if (userResult.User.Admin)
                 {
@@ -329,7 +324,7 @@ namespace TestTaskATON.Controllers
                 {
                     if (model.Login == userLogin)
                     {
-                        if (userResult.User.RevokedBy == null && userResult.User.RevokedOn == null)
+                        if (userResult.User.RevokedOn == null)
                         {
                             var usersResult = await _users.UpdateLogin(userLogin, newLogin, model.Login);
 
